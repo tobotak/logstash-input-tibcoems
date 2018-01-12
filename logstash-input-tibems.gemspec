@@ -3,7 +3,7 @@ Gem::Specification.new do |s|
   s.version       = '0.1.0'
   s.licenses      = ['Apache-2.0']
   s.summary       = 'this is logstash input plugin to receive messages from tibco ems queues'
-  s.description   = '{TODO: Write a longer description or delete this line.'
+  s.description   = 'this is first test plugin'
   s.homepage      = 'https://github.com/tobotak/logstash-input-tibcoems'
   s.authors       = ['tobotak for cgi use']
   s.email         = 'baron5002@gmail.com'
@@ -27,5 +27,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "logstash-core-plugin-api", "~> 2.0"
   s.add_runtime_dependency 'logstash-codec-plain'
   s.add_runtime_dependency 'stud', '>= 0.0.22'
-  s.add_development_dependency 'logstash-devutils', '>= 0.0.16'
+  s.add_development_dependency 'logstash-devutils'
 end

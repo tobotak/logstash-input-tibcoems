@@ -1,4 +1,4 @@
-# encoding: utf-8
+#encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
 require "stud/interval"
@@ -19,7 +19,7 @@ class LogStash::Inputs::Tibems < LogStash::Inputs::Base
   config_name "tibems"
 
   # If undefined, Logstash will complain, even if codec is unused.
-  default :codec, "json"
+  default :codec, "plain"
 
   # The message string to use in the event.
 
@@ -39,21 +39,29 @@ class LogStash::Inputs::Tibems < LogStash::Inputs::Base
   def register
     @logger.info("opening connection to EMS server.", :providerUrl => @providerUrl);
 
-    env = Hashtable.new
-    env.put javax.naming.Context.INITIAL_CONTEXT_FACTORY,@initialContextFactory
-    env.put javax.naming.Context.PROVIDER_URL,@providerUrl
-    env.put javax.naming.Context.SECURITY_PRINCIPAL,@user
-    env.put javax.naming.Context.SECURITY_CREDENTIALS,@password
+#    env = Hashtable.new
+#    env.put javax.naming.Context.INITIAL_CONTEXT_FACTORY,@initialContextFactory
+#    env.put javax.naming.Context.PROVIDER_URL,@providerUrl
+#    env.put javax.naming.Context.SECURITY_PRINCIPAL,@user
+#    env.put javax.naming.Context.SECURITY_CREDENTIALS,@password
 
     begin
-      jndiContext = javax.naming.InitialContext.new(env) ;
-      env = jndiContext.getEnvironment();
-      connectionFactory = jndiContext.lookup(@queueConnectionFactory);
-      @connection = connectionFactory.createQueueConnection(@user,@password);
-      @session = @connection.createQueueSession(false,@ackMode);
-      @queue = @session.createQueue(@queueName);
-      @receiver = @session.createReceiver(@queue);
+      @factory = javax.jms.ConnectionFactory;
+      @connection = javax.jms.Connection;
+      @session = javax.jms.Session;
+      @queue = javax.jms.queue;
+      @receiver = javax.jms.MessageConsumer;
+      @logger.debug("========== factory definited")
+      @factory = com.tibco.tibjms.TibjmsConnectionFactory.new(@providerUrl);
+      @logger.debug("========== factory initialized")
+      @logger.debug("========== initailizating connection with:", :user => @user, :password => @password)
+      @connection = @factory.createConnection(@user,@password);
+      @logger.debug("========== connection created ", @connection)
+ #     @session = @connection.createSession(@ackMode);
+ #     @queue = @session.createQueue(@queueName);
+ #     @receiver = @session.createConsumer(@queue);
       @connection.start();
+      @logger.debug("========= connection ID:", :clientID => @connection.getClientID())
     rescue Exception => e
       @logger.error("Error initalizing jms input", :exception => e, :backtrace => e.backtrace)
       raise
@@ -86,52 +94,13 @@ class LogStash::Inputs::Tibems < LogStash::Inputs::Base
         if msg.java_kind_of?(javax.jms.TextMessage)
           @logger.debug("Received Text message", :body => msg.getText())
 
-          @codec.decode(msg.getText())
-          do |event|
+          @codec.decode(msg.getText()) do |event|
             decorate(event)
             event.timestamp = Time.at(msg.getJMSTimestamp()/1000)
             event["JMSCorrelationID"] = msg.getJMSCorrelationID()
             event["JMSMessageID"] = msg.getJMSMessageID()
             event["JMSDestination"] = msg.getJMSDestination().toString()
             event["messageType"] = "TextMessage"
-            output_queue << event
-          end
-        elsif msg.java_kind_of?(javax.jms.MapMessage)
-          @logger.debug("Received Map message", :body => msg.getString("_cl.msg"))
-          @codec.decode(msg.getString("_cl.msg"))
-          do |event|
-            decorate(event)
-            time = Time.at(msg.getJMSTimestamp()/1000)
-            event.timestamp = time
-            m = msg.getJMSTimestamp()%1000
-            event["timestampFormated"] = time.strftime("%Y-%m-%d %H:%M:%S")+","+m.to_s
-            event["JMSTimestamp"] = msg.getJMSTimestamp()
-
-            event["JMSCorrelationID"] = msg.getJMSCorrelationID()
-            event["JMSMessageID"] = msg.getJMSMessageID()
-            event["JMSDestination"] =msg.getJMSDestination().toString()
-            event["messageType"] = "MapMessage"
-
-            event["globalInstanceId"] = msg.getString("_cl.globalInstanceId")
-            event["severity"] = msg.getString("_cl.severity")
-            event["expirationTimeInDB"] = msg.getString("_cl.expirationTimeInDB")
-            event["contextId"] =  msg.getString("_cl.contextId")
-            event["physicalCompId.scheme"] =  msg.getString("_cl.physicalCompId.scheme")
-            event["priority"] = msg.getString("_cl.priority")
-            event["creationTimes"] =  msg.getString("_cl.creationTimes")
-            event["reportingCompId.scheme"] = msg.getString("_cl.reportingCompId.scheme")
-            event["reportingCompId.hierarchyname"] =  msg.getString("_cl.reportingCompId.hierarchyname")
-            event["logicalCompId.scheme"] = msg.getString("_cl.logicalCompId.scheme")
-            event["physicalCompId.matrix.node"] = msg.getString("_cl.physicalCompId.matrix.node")
-            event["ApplicationName"] = msg.getString("_cl.logicalCompId.matrix.application")
-            event["correlationId"] =  msg.getString("_cl.correlationId")
-            event["logicalCompId.matrix.operation"] = msg.getString("_cl.logicalCompId.matrix.operation")
-            event["physicalCompId.matrix.env"] =  msg.getString("_cl.physicalCompId.matrix.env")
-            event["msgId"] =  msg.getString("_cl.msgId")
-            event["nanoTime"] = msg.getString("_cl.nanoTime")
-            event["reportingCompId.value"] =  msg.getString("_cl.reportingCompId.value")
-            event["locationId"] = msg.getString("_cl.locationId")
-
             output_queue << event
           end
         else
