@@ -76,31 +76,31 @@ Input section fields
 
 
 
-`input {
+  `input {
 
-  tibems {
+      tibems {
 
-    type => "test"
+          type => "test"
 
-    user => "admin"
+          user => "admin"
 
-    password => ""
+          password => ""
 
-    queueName => "temp"
+          queueName => "temp"
 
-    codec => "json"
+          codec => "json"
 
-    ackMode => "AUTO"
+          ackMode => "AUTO"
 
-    initialContextFactory => "com.tibco.tibjms.naming.TibjmsInitialContextFactory"
+          initialContextFactory => "com.tibco.tibjms.naming.TibjmsInitialContextFactory"
 
-    providerUrl => "tcp://127.0.0.1:7222"
+          providerUrl => "tcp://127.0.0.1:7222"
 
-    queueConnectionFactory => "GenericConnectionFactory"
+          queueConnectionFactory => "GenericConnectionFactory"
 
-  }
+        }
 
-}`
+  }`
 
 
 
