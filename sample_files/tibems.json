@@ -1,0 +1,38 @@
+input {
+  tibems {
+    type => "test"
+    user => "admin"
+    password => ""
+    queueName => "temp"
+    codec => "json"
+    ackMode => "AUTO"
+    initialContextFactory => "com.tibco.tibjms.naming.TibjmsInitialContextFactory"
+    providerUrl => "tcp://127.0.0.1:7222"
+    queueConnectionFactory => "GenericConnectionFactory"
+  }
+}
+
+filter {
+  xml {
+    force_array => "false"
+    remove_namespaces => "true"
+    source => "message"
+    target => "jsonMessage"
+  }
+
+  json {
+    source => "jsonMessage"
+  }
+}
+
+output {
+
+    file {
+      codec => "json"
+      path => "/opt/ELK/out.log"
+    }
+
+    elasticsearch {
+      index => "new_index"
+    }
+}
